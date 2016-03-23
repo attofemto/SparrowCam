@@ -1,12 +1,13 @@
 function labels_layout(fig, position)
-    global margin;
+    global settings
     global edit_BRan_x edit_BRan_y edit_FWHM_x edit_FWHM_y edit_maxpos_x edit_maxpos_y edit_maxval;
     % ------------
     % To get the width and height for position calculations
     win_pos = get(fig, 'Position');
     
     % Layout variables
-    font_size = 12;
+    font_size = str2double(settings.font_size);
+    margin = str2double(settings.margin);
     
     padding = win_pos(3)*0.01;
 

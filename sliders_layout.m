@@ -1,32 +1,31 @@
 
 function sliders_layout(fig, position)
-    global src data cmap;
-    global margin;
-    global running background setBackgroundData vidobj hImage;
+    global src data cmap vidobj format hImage hImageAxes settings;
+    global running background setBackgroundData popup_value;
     % Camera properties
-    
-    info = imaqhwinfo('tisimaq_r2013',1);
+    info = imaqhwinfo(settings.adaptor, str2double(settings.device_id));
     range = info.SupportedFormats;
     
+    font_size = str2double(settings.font_size);
+    margin = str2double(settings.margin);
+    
     % Gain
-    gain_max = 48;
-    gain_min = 0;
-
-    init_gain_val = 20;
+    gain_min = str2double(settings.gain_min);
+    gain_max = str2double(settings.gain_max);
+    
+    init_gain_val = gain_min;
 
     % Exposure
-    
-    exp_max = 1;
-    exp_min = -4;
-
-    init_exp_val = -1;
+    exp_min = str2double(settings.exposure_min);
+    exp_max = str2double(settings.exposure_max);
+   
+    init_exp_val = exp_min;
     
     % ------------
     win_pos = get(fig, 'Position');
     
     % Layout variables
-    font_size = 12;
-    
+
     
     label_width = 45;
     label_height = 20;
@@ -43,7 +42,7 @@ function sliders_layout(fig, position)
     % MOST BOTTOM SLIDER
     
     base_pos = 5;
-    panel_cam = uipanel(fig,'Title','Camera','FontSize',font_size,...
+    panel_cam = uipanel(fig,'Title','SparrowCam','FontSize',font_size,...
                         'Position',...
                         [panel_cam_left panel_cam_bottom panel_cam_size_x panel_cam_size_y]);
 
@@ -62,7 +61,7 @@ function sliders_layout(fig, position)
                             'Min',gain_min,'Max',gain_max,'Value',init_gain_val,...
                             'Position',[label_width base_pos slider_length slider_height],'SliderStep',[0.005 0.05],...
                             'Callback', @changeGain);
-    function changeGain(source,callbackdata)
+    function changeGain(source,~)
         % here logic of changing camera gain
         src.Gain = source.Value;
         set(label_gain_val, 'String', ['Gain:' num2str(source.Value)])
@@ -72,14 +71,14 @@ function sliders_layout(fig, position)
 
     base_pos = base_pos + 2*label_height;
     
-    label_exp_val = uicontrol(panel_cam, 'Style','Text', 'String', ['Exposure:' num2str(10^(init_exp_val))],...
+    label_exp_val = uicontrol(panel_cam, 'Style','Text', 'String', ['Exposure:' num2str((init_exp_val))],...
                                 'Position', [label_width base_pos + label_height slider_length label_height],...
                                 'FontSize',font_size);
     
-    label_exp_min = uicontrol(panel_cam, 'Style','Text', 'String', ['10^' num2str(exp_min)],...
+    label_exp_min = uicontrol(panel_cam, 'Style','Text', 'String', [num2str(exp_min)],...
                                 'Position', [0 base_pos label_width label_height],...
                                 'FontSize',font_size);
-    label_exp_max = uicontrol(panel_cam, 'Style','Text', 'String', ['10^' num2str(exp_max)],...
+    label_exp_max = uicontrol(panel_cam, 'Style','Text', 'String', [num2str(exp_max)],...
                                 'Position', [label_width + slider_length base_pos label_width label_height],...
                                 'FontSize',font_size);
     
@@ -88,13 +87,13 @@ function sliders_layout(fig, position)
                             'Position',[label_width base_pos slider_length slider_height],'SliderStep',[0.01 0.1],...
                             'Callback', @changeExp);
                         
-    function changeExp(source,callbackdata)
+    function changeExp(source,~)
         % here logic of changing camera exposure
-        src.Exposure = exp(source.Value);
-        set(label_exp_val, 'String', ['Exposure[s]:' num2str(10^(source.Value))])
+        src.Exposure = (source.Value);
+        set(label_exp_val, 'String', ['Exposure[s]:' num2str((source.Value))])
     end
     
-    % BUTTON TOGGLE PREVIEW
+    
 
    
 
@@ -121,7 +120,7 @@ function sliders_layout(fig, position)
 
     base_pos = base_pos + 2*label_height;
     
-    
+    % BUTTON TOGGLE PREVIEW
     button_toggle_preview = uicontrol(panel_cam, 'Style','pushbutton', 'String', 'Pause',...
                                 'Position', [label_width base_pos slider_length*0.5 slider_height],...
                                 'FontSize',font_size,...
@@ -139,12 +138,14 @@ function sliders_layout(fig, position)
         end
     end
     
-    button_toggle_save = uicontrol(panel_cam, 'Style','pushbutton', 'String', 'Save',...
+    % BUTTON SAVE
+
+    button_save = uicontrol(panel_cam, 'Style','pushbutton', 'String', 'Save',...
                                 'Position', [label_width+slider_length*0.5 base_pos slider_length*0.5 slider_height],...
                                 'FontSize',font_size,...
                                 'Callback', @toggle_save);
                             
-     function toggle_save(source, callbackdata)
+     function toggle_save(~, ~)
      dd = datestr(now, 'yyyymmdd_HHMMSS');
      filename = [dd,'.tif'];
      imwrite(data, cmap, filename,'tif')
@@ -152,36 +153,34 @@ function sliders_layout(fig, position)
  
    
     
-    
+    % POPUP FORMAT
 
 
    base_pos = base_pos + 2*label_height;
-    
+   
     
     popup_format = uicontrol(panel_cam, 'Style','popup', 'String', range,...
                                 'Position', [label_width base_pos slider_length slider_height],...
                                 'FontSize',font_size,...
+                                'Value', popup_value,...
                                 'Callback', @change_format);
-    
-     
-    function change_format(source, ~)
-        val = source.Value;
-        maps = source.String;
-        delete('Sparrow_format.mat') ;
-        camera_format = char(maps(val));
-        save('Sparrow_format.mat','camera_format');
-      
+    function change_format(~, ~)
+        val = popup_format.Value;
+        maps = popup_format.String;
+        format = char(maps(val));
+        popup_value = val;
+        %save('SparrowCam_format.mat','format', 'popup_value');
         close; 
-        SparrowCam_cc();
+        SparrowCam;
   
     end
 
     base_pos = base_pos + 2*label_height;
     
-    load('Sparrow_format.mat','camera_format');
-    text_format = uicontrol(panel_cam, 'Style','text','FontSize',font_size,...
-        'Position',[label_width base_pos slider_length slider_height],...
-        'String', ['Format:' camera_format]);
+    label_format = uicontrol(panel_cam, 'Style','Text', 'String', ['Current format: ' format],...
+                                'Position', [label_width base_pos slider_length slider_height],...
+                                'FontSize',font_size);
+
  
 end 
 
