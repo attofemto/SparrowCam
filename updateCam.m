@@ -71,9 +71,13 @@ hImageAxes.XTickLabel = '';
 set(hImageAxes, 'XGrid', settings.xgrid);
 set(hImageAxes, 'YGrid', settings.ygrid);
 
-colormap(cmap);
-colorbar(hImageAxes);
-
+ colormap(cmap);
+try
+ colorbar(hImageAxes);
+catch
+    'Sorry colorbar is not available in this system.'
+    
+end
 % Draw crosshair at the maximum
 hCrosshairX.XData = [0 imageRes(2)*c_x];
 hCrosshairX.YData = [Y*c_y Y*c_y];
