@@ -1,6 +1,6 @@
 function labels_layout(fig, position)
     global settings
-    global edit_BRan_x edit_BRan_y edit_FWHM_x edit_FWHM_y edit_maxpos_x edit_maxpos_y edit_maxval;
+    global edit_BRan_x edit_BRan_y edit_FWHM_x edit_FWHM_y edit_maxpos_x edit_maxpos_y edit_maxval edit_fps;
     % ------------
     % To get the width and height for position calculations
     win_pos = get(fig, 'Position');
@@ -110,6 +110,18 @@ function labels_layout(fig, position)
     edit_maxval = uicontrol(panel_beam, 'Style','Edit', 'String', 0,...
                                 'Position', [label_width + padding base_pos label_width - 2*padding label_height],...
                                 'FontSize',font_size);
+                                      
+    % FPS Label
+
+    base_pos = base_pos + 2.5*label_height;
+
+    label_fps = uicontrol(panel_beam, 'Style', 'Text', 'String', 'FPS:',...
+                                'Position', [padding base_pos label_width - 2*padding label_height],...
+                                'FontSize',font_size-2);
+
+    edit_fps = uicontrol(panel_beam, 'Style','Edit', 'String', 0,...
+                                'Position', [label_width + padding base_pos label_width - 2*padding label_height],...
+                                'FontSize',font_size-2);
                             
 end
 % slider_exposure = 

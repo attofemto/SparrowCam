@@ -1,16 +1,17 @@
 function updateCam(~,event,hImage)
 
 global hImageAxes hXSlice hYSlice hLineSliceX hLineSliceY hCrosshairX hCrosshairY;
-global edit_BRan_x edit_BRan_y edit_FWHM_x edit_FWHM_y edit_maxpos_x edit_maxpos_y edit_maxval;
-global settings imageRes data margin;
+global edit_BRan_x edit_BRan_y edit_FWHM_x edit_FWHM_y edit_maxpos_x edit_maxpos_y edit_maxval edit_fps;
+global settings imageRes pixsize_x pixsize_y margin prev_toc data;
 global cmap background backgroundData setBackgroundData;
 
 % This callback function updates the displayed frame and the histogram.
 
 margin = str2double(settings.margin);
-% smoothing of 1D slices is CPU costy
+% smoothing of 1D slices is CPU costy?
 toggle_smoothing = str2double(settings.toggle_smoothing);
 
+toggle_pixel_scaling = 0;
 
 % subtracting the background
 if background
@@ -32,19 +33,23 @@ mod_data = medfilt2(data);
 [val,ind] = max(mod_data(:));
 
 [Y,X] = ind2sub(size(data),ind); % Position of maximum(inversed).
-pixsize_x = str2double(settings.pixsize_x); % Pixel size of x direction.
-pixsize_y = str2double(settings.pixsize_y); % Pixel size of y direction.
+
 maxint = 255; % Upper limit of intensity.
 slice_x = data(Y,:); % Slice on x direction. 
 slice_y = data(:,X); % Slice on y direction.
 thr_2 = 1/2; % Threshold of peak(1/2).
 thr_e2 = 1/exp(2); % Threshold of peak(1/(e^2)).
 
-ccd_res_x = 1920; % Actual resolution for x direction(DMK 23UX174).
-ccd_res_y = 1200; % Actual resolution for y direction(DMK 23UX174).
 
-c_x = pixsize_x*(ccd_res_x/imageRes(2)); % Length for 1 pixel on x direction.
-c_y = pixsize_y*(ccd_res_y/imageRes(1)); % Length for 1 pixel on y direction.
+if toggle_pixel_scaling
+    ccd_res_x = 1920; % Actual resolution for x direction(DMK 23UX174).
+    ccd_res_y = 1200; % Actual resolution for y direction(DMK 23UX174).
+    c_x = pixsize_x*(ccd_res_x/imageRes(2)); % Length for 1 pixel on x direction.
+    c_y = pixsize_y*(ccd_res_y/imageRes(1)); % Length for 1 pixel on y direction.
+else
+    c_x = pixsize_x;
+    c_y = pixsize_y;
+end
 
 % specifiing coordinates for image corners (must coincide with axes limits)
 set(hImage, 'XData', [0 imageRes(2)*c_x]);
@@ -52,8 +57,8 @@ set(hImage, 'YData', [0 imageRes(1)*c_y]);
 
 set(hImageAxes, 'Visible', 'on');
 
-% set(hImageAxes, 'XLimMode', 'auto');
-% set(hImageAxes, 'YLimMode', 'auto');
+set(hImageAxes, 'XLimMode', 'manual');
+set(hImageAxes, 'YLimMode', 'manual');
 
 % adjusting the limits of axes for the image
 hImageAxes.XLim = [0 imageRes(2)*c_x];
@@ -71,7 +76,7 @@ hImageAxes.XTickLabel = '';
 set(hImageAxes, 'XGrid', settings.xgrid);
 set(hImageAxes, 'YGrid', settings.ygrid);
 
- colormap(cmap);
+colormap(cmap);
 try
  colorbar(hImageAxes);
 catch
@@ -156,18 +161,29 @@ end
 
 % updating values in monitors
 set(edit_maxval, 'String', sprintf('%3d',val));
-set(edit_maxpos_x, 'String', sprintf('%1.0f um',X*c_x));
-set(edit_maxpos_y, 'String', sprintf('%1.0f um',Y*c_y));
-set(edit_FWHM_x, 'String', sprintf('%1.0f um',area_x));
-set(edit_FWHM_y, 'String', sprintf('%1.0f um',area_y));
-set(edit_BRan_x, 'String', sprintf('%1.0f um',range_x));
-set(edit_BRan_y, 'String', sprintf('%1.0f um',range_y));
+set(edit_maxpos_x, 'String', sprintf('%4.0f um',X*c_x));
+set(edit_maxpos_y, 'String', sprintf('%4.0f um',Y*c_y));
+set(edit_FWHM_x, 'String', sprintf('%4.0f um',area_x));
+set(edit_FWHM_y, 'String', sprintf('%4.0f um',area_y));
+set(edit_BRan_x, 'String', sprintf('%4.0f um',range_x));
+set(edit_BRan_y, 'String', sprintf('%4.0f um',range_y));
 
 xplot();
 yplot();
 
+% FPS counting:
+
+time = toc;
+fps = 1./(time - prev_toc);
+prev_toc = time;
+
+set(edit_fps, 'String', sprintf('%2.1f',fps));
+
+
 % Refresh the display.
 drawnow
+
+
 end
 
 

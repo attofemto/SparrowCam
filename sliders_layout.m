@@ -2,24 +2,39 @@
 function sliders_layout(fig, position)
     global src data cmap vidobj format hImage hImageAxes settings;
     global running background setBackgroundData popup_value;
-    % Camera properties
-    info = imaqhwinfo(settings.adaptor, str2double(settings.device_id));
-    range = info.SupportedFormats;
     
     font_size = str2double(settings.font_size);
     margin = str2double(settings.margin);
     
+    % Camera properties
+    info = imaqhwinfo(settings.adaptor, str2double(settings.device_id));
+    range = info.SupportedFormats;
+    
+    % For cases popup_value is not set (sometimes the file
+    % SparrowCam_format.mat is not available)
+    if isempty(popup_value)
+        popup_value = 1;
+    end
+
     % Gain
     gain_min = str2double(settings.gain_min);
     gain_max = str2double(settings.gain_max);
     
-    init_gain_val = gain_min;
+    if gain_min < src.Gain && src.Gain < gain_max
+        init_gain_val = src.Gain;
+    else
+        init_gain_val = gain_min;
+    end
 
     % Exposure
     exp_min = str2double(settings.exposure_min);
     exp_max = str2double(settings.exposure_max);
    
-    init_exp_val = exp_min;
+    if exp_min < src.Exposure && src.Exposure < exp_max
+        init_exp_val = src.Exposure;
+    else
+        init_exp_val = exp_min;
+    end
     
     % ------------
     win_pos = get(fig, 'Position');
@@ -39,7 +54,7 @@ function sliders_layout(fig, position)
     slider_length = win_pos(3)*panel_cam_size_x - 2*label_width;
     slider_height = label_height;
 
-    % MOST BOTTOM SLIDER
+    % GAIN SLIDER
     
     base_pos = 5;
     panel_cam = uipanel(fig,'Title','SparrowCam','FontSize',font_size,...
@@ -67,7 +82,7 @@ function sliders_layout(fig, position)
         set(label_gain_val, 'String', ['Gain:' num2str(source.Value)])
     end
 
-    % NEXT SLIDER UPWARDS
+    % EXPOSURE SLIDER
 
     base_pos = base_pos + 2*label_height;
     
@@ -156,9 +171,8 @@ function sliders_layout(fig, position)
     % POPUP FORMAT
 
 
-   base_pos = base_pos + 2*label_height;
-   
-    
+    base_pos = base_pos + 2*label_height;
+
     popup_format = uicontrol(panel_cam, 'Style','popup', 'String', range,...
                                 'Position', [label_width base_pos slider_length slider_height],...
                                 'FontSize',font_size,...
