@@ -52,6 +52,8 @@ function SparrowCam
 
     vidobj.ReturnedColorSpace = 'grayscale';
     src = getselectedsource(vidobj);
+    src.ExposureAuto = 'Off';
+    src.GainAuto = 'Off';
     vidRes = vidobj.VideoResolution;
     
     %vidobj.ROIPosition = [314 289 341 251];
