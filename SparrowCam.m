@@ -1,11 +1,20 @@
 % SparrowCam - The beam profiler
 
-function SparrowCam
+function SparrowCam(adaptor_path)
     global src imageRes settings;
     global cmap pos running background vidobj popup_value format pixsize_x pixsize_y;
     global hImage hImageAxes hXSlice hYSlice hLineSliceX hLineSliceY hCrosshairX hCrosshairY
 
+    % to show user (when interactive mode is not available) names of
+    % adaptors
+    imaqhwinfo
     
+    % to enter the path to the proper adaptor as argument and register the
+    % adaptor
+    if nargin > 0
+        imaqregister(adaptor_path, 'unregister')
+        imaqregister(adaptor_path)
+    end
     % load configuration
     settings = ini2struct('SparrowCam.ini');
     
@@ -36,7 +45,11 @@ function SparrowCam
     slice_height_x = str2double(settings.slice_height_x);
     slice_height_y = str2double(settings.slice_height_y);
 
-
+    % to show user (when interactive mode is not available)
+    % available device ids
+    strct = imaqhwinfo(settings.adaptor);
+    available_deviceIDs = strct.DeviceIDs
+    
     % Initializing the camera
     try
         % if changing format or loading previous configuration
@@ -49,9 +62,12 @@ function SparrowCam
         format = vidobj.VideoFormat;
         popup_value = 1;
     end
+    
 
+    
     vidobj.ReturnedColorSpace = 'grayscale';
     src = getselectedsource(vidobj);
+    
     src.ExposureAuto = 'Off';
     src.GainAuto = 'Off';
     vidRes = vidobj.VideoResolution;
@@ -162,6 +178,9 @@ function SparrowCam
         
         set(hImageAxes.Parent, 'CurrentAxes', hYSlice);
         hLineSliceY = plot(zeros(1,imageRes(2)));
+        
+        % need to resize the view for new aspect ratio
+        resizeui();
         
         preview(vidobj,hImage);
     end
