@@ -2,6 +2,8 @@
 
 Laser beam profiler written in Matlab using image acquisition toolbox.
 
+![Screenshot of SparrowCam](SparrowCam_screenshot.png)
+
 ## Purpose
 
 Measuring laser beams and its parameters like:
@@ -28,7 +30,7 @@ Measuring laser beams and its parameters like:
 * Matlab 2014 and higher
 * Compatible camera (Program optimized for Imagingsource DMK 23UX174)
 
-![Screenshot of SparrowCam](SparrowCam_screenshot.png)
+
 
 
 
