@@ -3,7 +3,7 @@
 function SparrowCam(adaptor_path)
     global src imageRes settings;
     global cmap pos running background vidobj popup_value format pixsize_x pixsize_y;
-    global hImage hImageAxes hXSlice hYSlice hLineSliceX hLineSliceY hCrosshairX hCrosshairY
+    global hImage hImageAxes hXSlice hYSlice hLineSliceX hLineSliceY hCrosshairX hCrosshairY hEllipse
 
     % to show user (when interactive mode is not available) names of
     % adaptors
@@ -68,8 +68,8 @@ function SparrowCam(adaptor_path)
     vidobj.ReturnedColorSpace = 'grayscale';
     src = getselectedsource(vidobj);
     
-    %src.ExposureAuto = 'Off';
-    %src.GainAuto = 'Off';
+    src.ExposureAuto = 'Off';
+    src.GainAuto = 'Off';
     vidRes = vidobj.VideoResolution;
     
     %vidobj.ROIPosition = [314 289 341 251];
@@ -117,6 +117,10 @@ function SparrowCam(adaptor_path)
                                            'LineWidth', crosshair_width);
     hCrosshairY = line([0 0], [1000 1000], 'Color', crosshair_color,...
                                            'LineWidth', crosshair_width);
+    
+    % centroid of beam (ellipse)
+    hEllipse = line([0 0], [1000 1000], 'Color', crosshair_color,...
+                                        'LineWidth', crosshair_width);
     
     % appearance settings
     sliders_cam_position = [.65 .5 .35 .5];

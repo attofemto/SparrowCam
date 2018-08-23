@@ -1,54 +1,64 @@
 function updateCam(~,event,hImage)
 
-global hImageAxes hXSlice hYSlice hLineSliceX hLineSliceY hCrosshairX hCrosshairY;
-global edit_BRan_x edit_BRan_y edit_FWHM_x edit_FWHM_y edit_maxpos_x edit_maxpos_y edit_maxval edit_fps;
+global hImageAxes hXSlice hYSlice hLineSliceX hLineSliceY hCrosshairX hCrosshairY hEllipse;
+global edit_FWHM_x edit_FWHM_y edit_maxpos_x edit_maxpos_y edit_maxval edit_fps;
 global settings imageRes pixsize_x pixsize_y margin prev_toc data;
-global cmap background backgroundData setBackgroundData;
+global cmap background backgroundData backgroundMean setBackgroundData maxint;
 
 % This callback function updates the displayed frame and the histogram.
+
 
 margin = str2double(settings.margin);
 % smoothing of 1D slices is CPU costy?
 toggle_smoothing = str2double(settings.toggle_smoothing);
 
-toggle_pixel_scaling = 0;
-
 % subtracting the background
 if background
     if setBackgroundData
         backgroundData = event.Data;
+        backgroundMean = mean(backgroundData(:));
         setBackgroundData = 0;
+        
     end
+    maxint = str2double(settings.max_int) - backgroundMean;
     data = event.Data - backgroundData;
+    
 else
+    maxint = str2double(settings.max_int);
     data = event.Data;
 end
 
+c_x = pixsize_x;
+c_y = pixsize_y;
+
+% nex command was timed to 0.13 s
 % Display the current image frame. 
-set(hImage, 'CData', ind2rgb(data, cmap));
+false_colors = ind2rgb(data, cmap);
+set(hImage, 'CData', false_colors);
 
-mod_data = medfilt2(data);
-
-% Slice at the center of imageRes(1).
-[val,ind] = max(mod_data(:));
-
-[Y,X] = ind2sub(size(data),ind); % Position of maximum(inversed).
-
-maxint = 255; % Upper limit of intensity.
-slice_x = data(Y,:); % Slice on x direction. 
-slice_y = data(:,X); % Slice on y direction.
-thr_2 = 1/2; % Threshold of peak(1/2).
-thr_e2 = 1/exp(2); % Threshold of peak(1/(e^2)).
-
-
-if toggle_pixel_scaling
-    ccd_res_x = 1920; % Actual resolution for x direction(DMK 23UX174).
-    ccd_res_y = 1200; % Actual resolution for y direction(DMK 23UX174).
-    c_x = pixsize_x*(ccd_res_x/imageRes(2)); % Length for 1 pixel on x direction.
-    c_y = pixsize_y*(ccd_res_y/imageRes(1)); % Length for 1 pixel on y direction.
+if str2double(settings.toggle_fmedian)
+    mod_data = medfilt2(data);
 else
-    c_x = pixsize_x;
-    c_y = pixsize_y;
+    mod_data = data;
+end
+[val,ind] = max(mod_data(:));
+ 
+% regionprops method to get the beam and its properties
+% apply threshold as fraction of the maximum intensity
+thresh_data = im2bw(data, str2double(settings.max_ratio)*double(val)/maxint);
+measurements = regionprops(thresh_data, data, 'Centroid', 'MajorAxisLength', 'MinorAxisLength', 'Orientation', 'MaxIntensity');
+
+% find the region with highest intensity
+[val, ind_reg] = max(vertcat(measurements.MaxIntensity));
+if ind_reg > 0
+    X = int16(measurements(ind_reg).Centroid(1));
+    Y = int16(measurements(ind_reg).Centroid(2));
+
+    slice_x = data(Y,:); % Slice on x direction. 
+    slice_y = data(:,X); % Slice on y direction.
+
+    major_length = measurements(ind_reg).MajorAxisLength * c_x;
+    minor_length = measurements(ind_reg).MinorAxisLength * c_y;
 end
 
 % specifiing coordinates for image corners (must coincide with axes limits)
@@ -83,33 +93,40 @@ catch
     'Sorry colorbar is not available in this system.'
     
 end
-% Draw crosshair at the maximum
-hCrosshairX.XData = [0 imageRes(2)*c_x];
-hCrosshairX.YData = [Y*c_y Y*c_y];
 
-hCrosshairY.XData = [X*c_x X*c_x];
-hCrosshairY.YData = [0 imageRes(1)*c_y];
+if ind_reg > 0
+    % Draw crosshair at the maximum
+    hCrosshairX.XData = [0 imageRes(2)*c_x];
+    hCrosshairX.YData = [Y*c_y Y*c_y];
 
-% Calculating widths of peak
-half_x = slice_x > (val*thr_2); % Judgement if it is included in peak or not on x direction(1/2).
-tot_half_x = sum(half_x); % Number of pixels on x direction.
-area_x = tot_half_x*c_x; % Total area on x direction.
+    hCrosshairY.XData = [X*c_x X*c_x];
+    hCrosshairY.YData = [0 imageRes(1)*c_y];
 
-half_y = slice_y > (val*thr_2); % Judgement if it is included in peak or not on y direction(1/2).
-tot_half_y = sum(half_y); % Number of pixels on x direction.
-area_y = tot_half_y*c_y; % Total area on x direction.
+    % Ellipse drawing
+    phi = linspace(0,2*pi,50);
+    cosphi = cos(phi);
+    sinphi = sin(phi);
 
-two_e_x = slice_x > (val*thr_e2); % Judgement if it is included in peak or not on x direction(1/(e^2)).
-tot_e_x = sum(two_e_x); % Number of pixels on x direction.
-range_x = tot_e_x*c_x; % Total area on x direction.
+    s = measurements;
+    xbar = s(ind_reg).Centroid(1)*c_x;
+    ybar = s(ind_reg).Centroid(2)*c_y;
+    a = s(ind_reg).MajorAxisLength*c_x/2;
+    b = s(ind_reg).MinorAxisLength*c_y/2;
+    theta = pi*s(ind_reg).Orientation/180;
+    R = [ cos(theta)   sin(theta)
+         -sin(theta)   cos(theta)];
+    xy = [a*cosphi; b*sinphi];
+    xy = R*xy;
 
-two_e_y = slice_y > (val*thr_e2); % Judgement if it is included in peak or not on y direction(1/(e^2)).
-tot_e_y = sum(two_e_y); % Number of pixels on x direction.
-range_y = tot_e_y*c_y; % Total area on x direction.
+    hEllipse.XData = xy(1,:) + xbar;
+    hEllipse.YData = xy(2,:) + ybar;
 
-% mask for smoothing 1D slices
-conv_num = str2double(settings.mask_size); 
-conv_c = (1/conv_num)*ones(1,conv_num);
+    % mask for smoothing 1D slices
+    if toggle_smoothing
+        conv_num = str2double(settings.mask_size); 
+        conv_c = (1/conv_num)*ones(1,conv_num);
+    end
+end
 
 function xplot()
 
@@ -159,17 +176,18 @@ function yplot()
 
 end
 
-% updating values in monitors
-set(edit_maxval, 'String', sprintf('%3d',val));
-set(edit_maxpos_x, 'String', sprintf('%4.0f um',X*c_x));
-set(edit_maxpos_y, 'String', sprintf('%4.0f um',Y*c_y));
-set(edit_FWHM_x, 'String', sprintf('%4.0f um',area_x));
-set(edit_FWHM_y, 'String', sprintf('%4.0f um',area_y));
-set(edit_BRan_x, 'String', sprintf('%4.0f um',range_x));
-set(edit_BRan_y, 'String', sprintf('%4.0f um',range_y));
+if ind_reg > 0
+    % updating values in monitors
+    set(edit_maxval, 'String', sprintf('%3d',val));
+    set(edit_maxpos_x, 'String', sprintf('%4.0f um',X*c_x));
+    set(edit_maxpos_y, 'String', sprintf('%4.0f um',Y*c_y));
+    set(edit_FWHM_x, 'String', sprintf('%4.0f um',major_length));
+    set(edit_FWHM_y, 'String', sprintf('%4.0f um',minor_length));
 
-xplot();
-yplot();
+    xplot();
+    yplot();
+end
+
 
 % FPS counting:
 
@@ -180,27 +198,5 @@ prev_toc = time;
 set(edit_fps, 'String', sprintf('%2.1f',fps));
 
 
-% Refresh the display.
-drawnow
-
-
 end
 
-
-% function [inds, vals] = center_of_mass(X, Y, data)
-% 
-%     t1 = data.*X;
-%     t2 = data.*Y;
-% 
-%     mass = sum(data(:));
-%     x_pos = sum(t1(:))/mass;
-%     y_pos = sum(t2(:))/mass;
-%     vals = [x_pos y_pos];
-%     
-%     [~,x_ind] = min(abs(X(1,:) - x_pos));
-%     [~,y_ind] = min(abs(Y(:,1) - y_pos));
-%     inds = [x_ind, y_ind];
-%     
-% end
-% 
-% [inds, vals] = center_of_mass(X, Y, data);

@@ -117,9 +117,6 @@ function sliders_layout(fig, position)
         set(label_exp_val, 'String', ['Exposure[s]:' num2str(10^(source.Value))])
     end
     
-    
-
-   
 
     % BACKGROUND TOGGLE
 
