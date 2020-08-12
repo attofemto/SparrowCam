@@ -11,7 +11,7 @@ Measuring laser beams and its parameters like:
 * Profile shape
 * Size
 * Finding focal position
-* Interference paterns
+* Interference patterns
 * etc.
 
 ## Features
@@ -21,7 +21,7 @@ Measuring laser beams and its parameters like:
 * FWHM of the beam
 * ROI selection
 * Sliders for exposure and gain
-* Background difference
+* Background subtraction
 * Capturing
 * Configurable parameters in ini file
 
