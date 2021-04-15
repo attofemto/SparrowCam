@@ -4,6 +4,7 @@ global hImageAxes hXSlice hYSlice hLineSliceX hLineSliceY hCrosshairX hCrosshair
 global edit_FWHM_x edit_FWHM_y edit_maxpos_x edit_maxpos_y edit_maxval edit_fps;
 global settings imageRes pixsize_x pixsize_y margin prev_toc data;
 global cmap background backgroundData backgroundMean setBackgroundData maxint;
+%global vidobj ROI
 
 % This callback function updates the displayed frame and the histogram.
 
@@ -20,14 +21,15 @@ if background
         setBackgroundData = 0;
         
     end
-    maxint = str2double(settings.max_int) - backgroundMean;
+    %maxint = str2double(settings.max_int) - backgroundMean;
     data = event.Data - backgroundData;
     
 else
-    maxint = str2double(settings.max_int);
+    
     data = event.Data;
 end
 
+maxint = str2double(settings.max_int);
 c_x = pixsize_x;
 c_y = pixsize_y;
 
@@ -47,7 +49,7 @@ end
 % apply threshold as fraction of the maximum intensity
 thresh_data = im2bw(data, str2double(settings.max_ratio)*double(val)/maxint);
 measurements = regionprops(thresh_data, data, 'Centroid', 'MajorAxisLength', 'MinorAxisLength', 'Orientation', 'MaxIntensity');
-
+%ind_reg = 0;
 % find the region with highest intensity
 [val, ind_reg] = max(vertcat(measurements.MaxIntensity));
 if ind_reg > 0
@@ -71,36 +73,45 @@ set(hImageAxes, 'XLimMode', 'manual');
 set(hImageAxes, 'YLimMode', 'manual');
 
 % adjusting the limits of axes for the image
-hImageAxes.XLim = [0 imageRes(2)*c_x];
-hImageAxes.YLim = [0 imageRes(1)*c_y];
-hImageAxes.TickDir = 'in';
+set(hImageAxes, 'XLim', [0 imageRes(2)*c_x]);
+set(hImageAxes, 'YLim', [0 imageRes(1)*c_y]);
+set(hImageAxes, 'TickDir', 'in');
+%hImageAxes.XLim = [0 imageRes(2)*c_x];
+%hImageAxes.YLim = [0 imageRes(1)*c_y];
+%hImageAxes.TickDir = 'in';
 
 % Keeps ticks in the picture
 set(hImageAxes, 'XTickMode', 'auto');
 set(hImageAxes, 'YTickMode', 'auto');
 
 % deactivating Tick labels
-hImageAxes.YTickLabel = '';
-hImageAxes.XTickLabel = '';
+set(hImageAxes, 'XTickLabel', '');
+set(hImageAxes, 'YTickLabel', '');
+%hImageAxes.YTickLabel = '';
+%hImageAxes.XTickLabel = '';
 
 set(hImageAxes, 'XGrid', settings.xgrid);
 set(hImageAxes, 'YGrid', settings.ygrid);
 
 colormap(cmap);
-try
- colorbar(hImageAxes);
-catch
-    'Sorry colorbar is not available in this system.'
-    
-end
+% try
+%  colorbar(hImageAxes);
+% catch
+%     'Sorry colorbar is not available in this system.'
+%     
+% end
 
 if ind_reg > 0
-    % Draw crosshair at the maximum
-    hCrosshairX.XData = [0 imageRes(2)*c_x];
-    hCrosshairX.YData = [Y*c_y Y*c_y];
+    % Draw crosshair at the maximums
+    set(hCrosshairX, 'XData', [0 imageRes(2)*c_x]);
+    set(hCrosshairX, 'YData', [Y*c_y Y*c_y]);
+    %hCrosshairX.XData = [0 imageRes(2)*c_x];
+    %hCrosshairX.YData = [Y*c_y Y*c_y];
 
-    hCrosshairY.XData = [X*c_x X*c_x];
-    hCrosshairY.YData = [0 imageRes(1)*c_y];
+    set(hCrosshairY, 'XData', [X*c_x X*c_x]);
+    set(hCrosshairY, 'YData', [0 imageRes(1)*c_y]);
+    %hCrosshairY.XData = [X*c_x X*c_x];
+    %hCrosshairY.YData = [0 imageRes(1)*c_y];
 
     % Ellipse drawing
     phi = linspace(0,2*pi,50);
@@ -118,8 +129,8 @@ if ind_reg > 0
     xy = [a*cosphi; b*sinphi];
     xy = R*xy;
 
-    hEllipse.XData = xy(1,:) + xbar;
-    hEllipse.YData = xy(2,:) + ybar;
+    set(hEllipse, 'XData', xy(1,:) + xbar);
+    set(hEllipse, 'YData', xy(2,:) + ybar);
 
     % mask for smoothing 1D slices
     if toggle_smoothing
@@ -132,10 +143,13 @@ function xplot()
 
     grid_x = linspace(0, imageRes(2)*c_x, imageRes(2)); %Grid for x direction.
     
-    set(hImageAxes.Parent, 'CurrentAxes', hXSlice);
-    hXSlice.Position = [hImageAxes.Position(1) hXSlice.Position(2) hImageAxes.Position(3) hXSlice.Position(4)];
-    hLineSliceX.XData = grid_x;
-    hLineSliceX.YData = slice_x;
+    parent = get(hImageAxes, 'Parent');
+    set(parent, 'CurrentAxes', hXSlice);
+    pIA = get(hImageAxes, 'Position');
+    pXS = get(hXSlice, 'Position');
+    set(hXSlice, 'Position', [pIA(1) pXS(2) pIA(3) pXS(4)]);
+    set(hLineSliceX, 'XData', grid_x);
+    set(hLineSliceX, 'YData', slice_x);
 %     title('Position x and its intensity');
     xlabel('x [\mum]');
 %     ylabel('Intensity');
@@ -157,11 +171,15 @@ end
 function yplot()
     
     grid_y = linspace(0, imageRes(1)*c_y, imageRes(1)); %Grid for y direction.
-    set(hImageAxes.Parent, 'CurrentAxes', hYSlice);
-    hYSlice.Position = [ hYSlice.Position(1) hImageAxes.Position(2) hYSlice.Position(3) hImageAxes.Position(4)];
-    hLineSliceY.XData = slice_y;
-    hLineSliceY.YData = grid_y;
-    hYSlice.YDir = 'reverse';
+    parent = get(hImageAxes, 'Parent');
+    set(parent, 'CurrentAxes', hYSlice);
+    pIA = get(hImageAxes, 'Position');
+    pYS = get(hYSlice, 'Position');
+    set(hYSlice, 'Position', [ pYS(1) pIA(2) pYS(3) pIA(4)]);
+    
+    set(hLineSliceY, 'XData', slice_y);
+    set(hLineSliceY, 'YData', grid_y);
+    set(hYSlice, 'YDir', 'reverse');
 
     ylabel('y [\mum]');
 

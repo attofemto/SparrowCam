@@ -1,7 +1,7 @@
 
 function sliders_layout(fig, position)
     global src data cmap vidobj format hImage hImageAxes settings;
-    global running background setBackgroundData popup_value;
+    global running background setBackgroundData popup_value edit_runid;
     
     font_size = str2double(settings.font_size);
     margin = str2double(settings.margin);
@@ -86,8 +86,9 @@ function sliders_layout(fig, position)
                             'Callback', @changeGain);
     function changeGain(source,~)
         % here logic of changing camera gain
-        src.Gain = source.Value;
-        set(label_gain_val, 'String', ['Gain:' num2str(source.Value)])
+        val = get(source, 'Value');
+        set(src, 'Gain', val);
+        set(label_gain_val, 'String', ['Gain:' num2str(val)])
     end
 
     % EXPOSURE SLIDER
@@ -106,15 +107,19 @@ function sliders_layout(fig, position)
                                 'FontSize',font_size);
     
     slider_exp = uicontrol(panel_cam, 'Style','slider',...
-                            'Min',log10(exp_min),'Max',log10(exp_max),'Value', log10(init_exp_val),...
+                            'Min',log10(double(exp_min)),'Max',log10(double(exp_max)),'Value', log10(double(init_exp_val)),...
                             'Position',[label_width base_pos slider_length slider_height],'SliderStep',[0.01 0.1],...
                             'Callback', @changeExp);
-                        
+%     slider_exp = uicontrol(panel_cam, 'Style','slider',...
+%                             'Min',(double(exp_min)),'Max',(double(exp_max)),'Value', (double(init_exp_val)),...
+%                             'Position',[label_width base_pos slider_length slider_height],'SliderStep',[0.01 0.1],...
+%                             'Callback', @changeExp);                    
     function changeExp(source,~)
         % here logic of changing camera exposure
-        10^(source.Value)
-        src.Exposure = 10^(source.Value);
-        set(label_exp_val, 'String', ['Exposure[s]:' num2str(10^(source.Value))])
+        val = get(source, 'Value');
+        %10^(val)
+        set(src, 'Exposure', 10^(val));
+        set(label_exp_val, 'String', ['Exposure[s]:' num2str(val)])
     end
     
 
@@ -167,13 +172,24 @@ function sliders_layout(fig, position)
                                 'Callback', @toggle_save);
                             
      function toggle_save(~, ~)
-     dd = datestr(now, 'yyyymmdd_HHMMSS');
-     filename = [dd,'.tif'];
+     dd = [get(edit_runid, 'String'), '_', datestr(now, 'yyyymmdd_HHMMSS')];
+     filename = [settings.save_folder, '\', dd,'.tif'];
+     imwrite(data, filename,'tif')
+     
+     filename = [settings.save_folder, '\', dd,'_cmap.tif'];
      imwrite(data, cmap, filename,'tif')
      end
  
    
     
+    % EDIT RUNID
+
+    base_pos = base_pos + 1*label_height;
+
+    edit_runid = uicontrol(panel_cam, 'Style','edit', 'String', '',...
+                                'Position', [label_width base_pos slider_length slider_height],...
+                                'FontSize', font_size);
+  
     % POPUP FORMAT
 
 
@@ -195,7 +211,7 @@ function sliders_layout(fig, position)
   
     end
 
-    base_pos = base_pos + 2*label_height;
+    base_pos = base_pos + 1*label_height;
     
     label_format = uicontrol(panel_cam, 'Style','Text', 'String', ['Current format: ' format],...
                                 'Position', [label_width base_pos slider_length slider_height],...

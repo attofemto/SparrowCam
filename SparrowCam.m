@@ -2,7 +2,7 @@
 
 function SparrowCam(adaptor_path)
     global src imageRes settings;
-    global cmap pos running background vidobj popup_value format pixsize_x pixsize_y;
+    global cmap pos running background vidobj ROI popup_value format pixsize_x pixsize_y;
     global hImage hImageAxes hXSlice hYSlice hLineSliceX hLineSliceY hCrosshairX hCrosshairY hEllipse
 
     % to show user (when interactive mode is not available) names of
@@ -38,8 +38,8 @@ function SparrowCam(adaptor_path)
 
     fig = figure('Visible', 'off',...
                'Position',[scrsz(3)/6 scrsz(4)/6 scrsz(3)*2/3 scrsz(4)*2/3],...
-               'SizeChangedFcn',@resizeui, 'CloseRequestFcn', @destroy);
-
+               'CloseRequestFcn', @destroy);
+%'SizeChangedFcn',@resizeui,
     margin = str2double(settings.margin); % some space between widgets
     
     slice_height_x = str2double(settings.slice_height_x);
@@ -68,19 +68,21 @@ function SparrowCam(adaptor_path)
     vidobj.ReturnedColorSpace = 'grayscale';
     src = getselectedsource(vidobj);
     
-    src.ExposureAuto = 'Off';
-    src.GainAuto = 'Off';
+    %src.ExposureAuto = 'Off';
+    %src.GainAuto = 'Off';
     vidRes = vidobj.VideoResolution;
     
     %vidobj.ROIPosition = [314 289 341 251];
-    
+    ROI = [1 1 vidRes(1)/4 vidRes(2)/4];
+    vidobj.ROIPosition = ROI;
     % The Video Resolution property returns values as width by height, but
     % MATLAB images are height by width, so flip the values.    
     imageRes = fliplr(vidRes);
     
     image_xsize = .6-2*margin; % normed
-    figure_xsize_abs = fig.Position(3);
-    figure_ysize_abs = fig.Position(4);
+    p = get(fig, 'Position');
+    figure_xsize_abs = p(3);%fig.Position(3);
+    figure_ysize_abs = p(4);%fig.Position(4);
     ratio = imageRes(1)/imageRes(2);
     
     imagePosition = [0.1+margin ...
@@ -123,7 +125,7 @@ function SparrowCam(adaptor_path)
                                         'LineWidth', crosshair_width);
     
     % appearance settings
-    sliders_cam_position = [.65 .5 .35 .5];
+    sliders_cam_position = [.65 .45 .35 .55];
     sliders_layout(fig, sliders_cam_position); % frame with format switch and gain and exposure
     
     labels_beam_position = [.65 .0 .35 .5];
@@ -160,9 +162,10 @@ function SparrowCam(adaptor_path)
     function [x,y] = setROI(obj,event_obj)
         
         stoppreview(vidobj);
-
-        pos_x_um = event_obj.Axes.XLim;
-        pos_y_um = event_obj.Axes.YLim;
+        
+        
+        pos_x_um = get(event_obj.Axes, 'XLim');
+        pos_y_um = get(event_obj.Axes, 'YLim');
         
         pos_x = floor(pos_x_um/pixsize_x);
         pos_y = floor(pos_y_um/pixsize_y);
@@ -171,16 +174,17 @@ function SparrowCam(adaptor_path)
         size_y = floor(pos_y(2) - pos_y(1));
         
         % conversion to pixels
-
-        vidobj.ROIPosition = [pos_x(1) pos_y(1) size_x size_y];
+        ROI = [pos_x(1) pos_y(1) size_x size_y];
+        vidobj.ROIPosition = ROI;
         m = vidobj.ROIPosition;
         imageRes = [m(4) m(3)];
         
         % Lineout plots have to be set to new sampling
-        set(hImageAxes.Parent, 'CurrentAxes', hXSlice);
+        parent = get(hImageAxes, 'Parent');
+        set(parent, 'CurrentAxes', hXSlice);
         hLineSliceX = plot(zeros(1,imageRes(1)));
         
-        set(hImageAxes.Parent, 'CurrentAxes', hYSlice);
+        set(parent, 'CurrentAxes', hYSlice);
         hLineSliceY = plot(zeros(1,imageRes(2)));
         
         % need to resize the view for new aspect ratio
@@ -195,15 +199,18 @@ function SparrowCam(adaptor_path)
         sliders_layout(fig, sliders_cam_position);
         labels_layout(fig, labels_beam_position);
        
-        figure_xsize_abs = fig.Position(3);
-        figure_ysize_abs = fig.Position(4);
+        pp = get(fig, 'Position');
+        figure_xsize_abs = pp(3);
+        figure_ysize_abs = pp(4);
         ratio = imageRes(1)/imageRes(2);
 
-        hImageAxes.Position = [hImageAxes.Position(1) ...
-                             hImageAxes.Position(2) ...
-                             hImageAxes.Position(3) ...
-                             figure_xsize_abs*hImageAxes.Position(3)*ratio/figure_ysize_abs];
-
+        pIAxes = get(hImageAxes, 'Position');
+        pIAxes(4) = figure_xsize_abs*pIAxes(3)*ratio/figure_ysize_abs;
+        %hImageAxes.Position = [hImageAxes.Position(1) ...
+        %                     hImageAxes.Position(2) ...
+        %                     hImageAxes.Position(3) ...
+        %                     figure_xsize_abs*hImageAxes.Position(3)*ratio/figure_ysize_abs];
+        set(hImageAxes, 'Position', pIAxes);
     end
 end
 
