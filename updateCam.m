@@ -3,11 +3,10 @@ function updateCam(~,event,hImage)
 global hImageAxes hXSlice hYSlice hLineSliceX hLineSliceY hCrosshairX hCrosshairY hEllipse;
 global edit_FWHM_x edit_FWHM_y edit_maxpos_x edit_maxpos_y edit_maxval edit_fps;
 global settings imageRes pixsize_x pixsize_y margin prev_toc data;
-global cmap background backgroundData backgroundMean setBackgroundData maxint;
+global cmap background backgroundData backgroundMean setBackgroundData maxint checkbox_profile;
 %global vidobj ROI
 
 % This callback function updates the displayed frame and the histogram.
-
 
 margin = str2double(settings.margin);
 % smoothing of 1D slices is CPU costy?
@@ -44,24 +43,44 @@ else
     mod_data = data;
 end
 [val,ind] = max(mod_data(:));
- 
-% regionprops method to get the beam and its properties
-% apply threshold as fraction of the maximum intensity
-thresh_data = im2bw(data, str2double(settings.max_ratio)*double(val)/maxint);
-measurements = regionprops(thresh_data, data, 'Centroid', 'MajorAxisLength', 'MinorAxisLength', 'Orientation', 'MaxIntensity');
-%ind_reg = 0;
-% find the region with highest intensity
-[val, ind_reg] = max(vertcat(measurements.MaxIntensity));
-if ind_reg > 0
-    X = int16(measurements(ind_reg).Centroid(1));
-    Y = int16(measurements(ind_reg).Centroid(2));
+
+lprofile = get(checkbox_profile, 'Value');
+if ~lprofile
+    % regionprops method to get the beam and its properties
+    % apply threshold as fraction of the maximum intensity
+    ind_reg = 1;
+    X = int16(imageRes(2)/2);
+    Y = int16(imageRes(1)/2);
 
     slice_x = data(Y,:); % Slice on x direction. 
     slice_y = data(:,X); % Slice on y direction.
+    
+    major_length = 1;
+    minor_length = 1;
+    
+    measurements = [struct];
+    measurements(1).Centroid = ones(1, 2);
+    measurements(1).MajorAxisLength = 1;
+    measurements(1).MinorAxisLength = 1;
+    measurements(1).Orientation = 0;
 
-    major_length = measurements(ind_reg).MajorAxisLength * c_x;
-    minor_length = measurements(ind_reg).MinorAxisLength * c_y;
+else    
+    thresh_data = im2bw(data, str2double(settings.max_ratio)*double(val)/maxint);
+    measurements = regionprops(thresh_data, data, 'Centroid', 'MajorAxisLength', 'MinorAxisLength', 'Orientation', 'MaxIntensity');% find the region with highest intensity
+    [val, ind_reg] = max(vertcat(measurements.MaxIntensity));
+
+    if ind_reg > 0
+        X = int16(measurements(ind_reg).Centroid(1));
+        Y = int16(measurements(ind_reg).Centroid(2));
+
+        slice_x = data(Y,:); % Slice on x direction. 
+        slice_y = data(:,X); % Slice on y direction.
+
+        major_length = measurements(ind_reg).MajorAxisLength * c_x;
+        minor_length = measurements(ind_reg).MinorAxisLength * c_y;
+    end
 end
+
 
 % specifiing coordinates for image corners (must coincide with axes limits)
 set(hImage, 'XData', [0 imageRes(2)*c_x]);

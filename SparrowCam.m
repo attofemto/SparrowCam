@@ -38,8 +38,8 @@ function SparrowCam(adaptor_path)
 
     fig = figure('Visible', 'off',...
                'Position',[scrsz(3)/6 scrsz(4)/6 scrsz(3)*2/3 scrsz(4)*2/3],...
-               'CloseRequestFcn', @destroy);
-%'SizeChangedFcn',@resizeui,
+               'CloseRequestFcn', @destroy,...
+               'ResizeFcn', @resizeui);
     margin = str2double(settings.margin); % some space between widgets
     
     slice_height_x = str2double(settings.slice_height_x);
@@ -53,7 +53,7 @@ function SparrowCam(adaptor_path)
     % Initializing the camera
     try
         % if changing format or loading previous configuration
-        load('SparrowCam_format.mat','format');
+        load('SparrowCam_format.mat', 'format');
         vidobj = videoinput(settings.adaptor, str2double(settings.device_id), format);
     catch
         % first run of program or fixing error in previous
@@ -72,14 +72,23 @@ function SparrowCam(adaptor_path)
     %src.GainAuto = 'Off';
     vidRes = vidobj.VideoResolution;
     
-    %vidobj.ROIPosition = [314 289 341 251];
-    ROI = [1 1 vidRes(1)/4 vidRes(2)/4];
-    vidobj.ROIPosition = ROI;
     % The Video Resolution property returns values as width by height, but
     % MATLAB images are height by width, so flip the values.    
     imageRes = fliplr(vidRes);
     
-    image_xsize = .6-2*margin; % normed
+    %vidobj.ROIPosition = [314 289 341 251];
+    
+    if length(ROI) == 4 % this four identifies position vector
+        % number 4 corresponds to binning factor
+        vidobj.ROIPosition = 4*ROI;
+        
+        m = get(vidobj, 'ROIPosition');
+        imageRes = [m(4) m(3)];
+    end
+    %ROI = [1 1 vidRes(1)/4 vidRes(2)/4];
+        
+    
+    image_xsize = .55; % normed
     p = get(fig, 'Position');
     figure_xsize_abs = p(3);%fig.Position(3);
     figure_ysize_abs = p(4);%fig.Position(4);
@@ -107,7 +116,7 @@ function SparrowCam(adaptor_path)
                       'Box', 'on');
     
     % reprogram zooming feature of Matlab
-    set(zoom(hImageAxes),'ActionPostCallback',@setROI);
+    set(zoom(hImageAxes),'ActionPostCallback', @setROI);
 
     hImage = imshow(ind2rgb(zeros(imageRes), cmap));
     axis normal;
@@ -125,10 +134,12 @@ function SparrowCam(adaptor_path)
                                         'LineWidth', crosshair_width);
     
     % appearance settings
-    sliders_cam_position = [.65 .45 .35 .55];
-    sliders_layout(fig, sliders_cam_position); % frame with format switch and gain and exposure
+    panel_left_pos = image_xsize + imagePosition(1);
     
-    labels_beam_position = [.65 .0 .35 .5];
+    sliders_cam_position = [panel_left_pos .45 1 - panel_left_pos .55];
+    panel_cam = sliders_layout(fig, sliders_cam_position); % frame with format switch and gain and exposure
+    
+    labels_beam_position = [panel_left_pos .0 1 - panel_left_pos .5];
     labels_layout(fig, labels_beam_position); % frame with measured values
     
     % Set the axis of the displayed image to maintain the aspect ratio of the 
@@ -147,7 +158,8 @@ function SparrowCam(adaptor_path)
     % Stop the preview image and delete the figure.
         try
             stoppreview(vidobj);
-            save('SparrowCam_format.mat','format','popup_value');
+            save('SparrowCam_format.mat', 'format', 'popup_value', 'ROI');
+
         catch
 
         end
@@ -159,11 +171,15 @@ function SparrowCam(adaptor_path)
         clear vidobj
     end
 
-    function [x,y] = setROI(obj,event_obj)
+    function [x,y] = setROI(obj, event_obj)
+        
+        global checkbox_preview
+        
+        % ROI was selected; uncheck the indicater of ROI selecting regime
+        set(checkbox_preview, 'Value', 0);
         
         stoppreview(vidobj);
-        
-        
+                
         pos_x_um = get(event_obj.Axes, 'XLim');
         pos_y_um = get(event_obj.Axes, 'YLim');
         
@@ -175,29 +191,45 @@ function SparrowCam(adaptor_path)
         
         % conversion to pixels
         ROI = [pos_x(1) pos_y(1) size_x size_y];
-        vidobj.ROIPosition = ROI;
-        m = vidobj.ROIPosition;
-        imageRes = [m(4) m(3)];
         
-        % Lineout plots have to be set to new sampling
-        parent = get(hImageAxes, 'Parent');
-        set(parent, 'CurrentAxes', hXSlice);
-        hLineSliceX = plot(zeros(1,imageRes(1)));
+        format = settings.fullframe_format;
         
-        set(parent, 'CurrentAxes', hYSlice);
-        hLineSliceY = plot(zeros(1,imageRes(2)));
-        
-        % need to resize the view for new aspect ratio
-        resizeui();
-        
-        preview(vidobj,hImage);
+        close; 
+        SparrowCam;
+%         %vidobj.ROIPosition = ROI;
+%         %m = vidobj.ROIPosition;
+%         set(vidobj, 'ROIPosition', ROI);
+%         m = get(vidobj, 'ROIPosition');
+%         imageRes = [m(4) m(3)];
+%         %imageRes = [ROI(4) ROI(3)];
+%         
+%         % Lineout plots have to be set to new sampling
+%         parent = get(hImageAxes, 'Parent');
+%         set(parent, 'CurrentAxes', hXSlice);
+%         hLineSliceX = plot(zeros(1,imageRes(1)));
+%         
+%         set(parent, 'CurrentAxes', hYSlice);
+%         hLineSliceY = plot(zeros(1,imageRes(2)));
+%         
+%         % need to resize the view for new aspect ratio
+%         resizeui();
+%         
+%         preview(vidobj,hImage);
     end
 
     function resizeui(~,~)
         
         % when dragging the figure corners rebuild the widgets
-        sliders_layout(fig, sliders_cam_position);
-        labels_layout(fig, labels_beam_position);
+%         ch = get(panel_cam, 'Children');
+% 
+%         for ii = 1:length(ch)
+%             if isprop(ch(ii), 'Visible')
+%                 %set(ch(ii), 'Visible', 'off');
+%                 delete(ch(ii));
+%             end
+%         end
+%         sliders_layout(fig, sliders_cam_position);
+%         labels_layout(fig, labels_beam_position);
        
         pp = get(fig, 'Position');
         figure_xsize_abs = pp(3);

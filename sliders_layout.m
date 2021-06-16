@@ -1,7 +1,7 @@
 
-function sliders_layout(fig, position)
+function panel_cam = sliders_layout(fig, position)
     global src data cmap vidobj format hImage hImageAxes settings;
-    global running background setBackgroundData popup_value edit_runid;
+    global running background setBackgroundData popup_value edit_runid checkbox_preview checkbox_profile ROI;
     
     font_size = str2double(settings.font_size);
     margin = str2double(settings.margin);
@@ -65,7 +65,7 @@ function sliders_layout(fig, position)
     % GAIN SLIDER
     
     base_pos = 5;
-    panel_cam = uipanel(fig,'Title','SparrowCam','FontSize',font_size,...
+    panel_cam = uipanel(fig, 'Title','SparrowCam','FontSize',font_size,...
                         'Position',...
                         [panel_cam_left panel_cam_bottom panel_cam_size_x panel_cam_size_y]);
 
@@ -186,9 +186,14 @@ function sliders_layout(fig, position)
 
     base_pos = base_pos + 1*label_height;
 
-    edit_runid = uicontrol(panel_cam, 'Style','edit', 'String', '',...
+    uicontrol(panel_cam, 'Style','Text', 'String', 'Runid: ',...
+                                'Position', [0 base_pos label_width label_height],...
+                                'FontSize',font_size);
+                            
+    edit_runid = uicontrol(panel_cam, 'Style','edit', 'String', 'my_beam_01',...
                                 'Position', [label_width base_pos slider_length slider_height],...
-                                'FontSize', font_size);
+                                'FontSize', font_size, ...
+                                'BackgroundColor', 'white');
   
     % POPUP FORMAT
 
@@ -201,8 +206,8 @@ function sliders_layout(fig, position)
                                 'Value', popup_value,...
                                 'Callback', @change_format);
     function change_format(~, ~)
-        val = popup_format.Value;
-        maps = popup_format.String;
+        val = get(popup_format, 'Value');
+        maps = get(popup_format, 'String');
         format = char(maps(val));
         popup_value = val;
         %save('SparrowCam_format.mat','format', 'popup_value');
@@ -215,7 +220,40 @@ function sliders_layout(fig, position)
     
     label_format = uicontrol(panel_cam, 'Style','Text', 'String', ['Current format: ' format],...
                                 'Position', [label_width base_pos slider_length slider_height],...
-                                'FontSize',font_size);
+                                'FontSize', font_size);
+                          
+    % CHECKBOX PREVIEW
+
+    base_pos = base_pos + 2*label_height;
+
+    checkbox_preview = uicontrol(panel_cam, 'Style','checkbox', 'String', 'Whole chip to select ROI',...
+                                'Position', [label_width base_pos slider_length slider_height],...
+                                'FontSize', font_size,...
+                                'Value', 0, ...
+                                'Callback', @preview_for_roi);
+    function preview_for_roi(~, ~)
+        checkbox_preview_value = get(checkbox_preview, 'Value');
+        
+        if checkbox_preview_value == 1
+            format = char(settings.preview_format);
+            
+            % ROI needs to be reset otherwise would not show full frame
+            ROI = 0;
+            %save('SparrowCam_format.mat','format', 'popup_value');
+            close; 
+            SparrowCam;
+        end
+  
+    end
+
+     % CHECKBOX PROFILE
+
+    base_pos = base_pos + 1*label_height;
+
+    checkbox_profile = uicontrol(panel_cam, 'Style','checkbox', 'String', 'Profile',...
+                                'Position', [label_width base_pos slider_length slider_height],...
+                                'FontSize', font_size,...
+                                'Value', 0);   
 
  
 end 
