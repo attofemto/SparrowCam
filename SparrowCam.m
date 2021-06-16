@@ -64,12 +64,11 @@ function SparrowCam(adaptor_path)
     end
     
 
-    
     vidobj.ReturnedColorSpace = 'grayscale';
     src = getselectedsource(vidobj);
     
-    %src.ExposureAuto = 'Off';
-    %src.GainAuto = 'Off';
+    src.ExposureAuto = 'Off';
+    src.GainAuto = 'Off';
     vidRes = vidobj.VideoResolution;
     
     % The Video Resolution property returns values as width by height, but
@@ -196,25 +195,7 @@ function SparrowCam(adaptor_path)
         
         close; 
         SparrowCam;
-%         %vidobj.ROIPosition = ROI;
-%         %m = vidobj.ROIPosition;
-%         set(vidobj, 'ROIPosition', ROI);
-%         m = get(vidobj, 'ROIPosition');
-%         imageRes = [m(4) m(3)];
-%         %imageRes = [ROI(4) ROI(3)];
-%         
-%         % Lineout plots have to be set to new sampling
-%         parent = get(hImageAxes, 'Parent');
-%         set(parent, 'CurrentAxes', hXSlice);
-%         hLineSliceX = plot(zeros(1,imageRes(1)));
-%         
-%         set(parent, 'CurrentAxes', hYSlice);
-%         hLineSliceY = plot(zeros(1,imageRes(2)));
-%         
-%         % need to resize the view for new aspect ratio
-%         resizeui();
-%         
-%         preview(vidobj,hImage);
+
     end
 
     function resizeui(~,~)

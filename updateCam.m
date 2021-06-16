@@ -218,8 +218,8 @@ if ind_reg > 0
     set(edit_maxval, 'String', sprintf('%3d',val));
     set(edit_maxpos_x, 'String', sprintf('%4.0f um',X*c_x));
     set(edit_maxpos_y, 'String', sprintf('%4.0f um',Y*c_y));
-    set(edit_FWHM_x, 'String', sprintf('%4.0f um',major_length));
-    set(edit_FWHM_y, 'String', sprintf('%4.0f um',minor_length));
+    set(edit_FWHM_x, 'String', sprintf('%4.0f um', major_length));
+    set(edit_FWHM_y, 'String', sprintf('%4.0f um', minor_length));
 
     xplot();
     yplot();

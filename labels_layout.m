@@ -29,8 +29,9 @@ function labels_layout(fig, position)
     % MOST BOTTOM Field
     
     base_pos = padding;
-                            
-    label_FWHM_y = uicontrol(panel_beam, 'Style', 'Text', 'String', '2Wu@50.0% (major):',...
+    
+    %max_ratio = str2double(settings.max_ratio);
+    label_FWHM_y = uicontrol(panel_beam, 'Style', 'Text', 'String', ['2W(major)@' settings.max_ratio],...
                                 'Position', [padding base_pos label_width - 2*padding label_height],...
                                 'FontSize',font_size);
 
@@ -42,7 +43,7 @@ function labels_layout(fig, position)
 
     base_pos = base_pos + 1.5*label_height;
 
-    label_FWHM_x = uicontrol(panel_beam, 'Style', 'Text', 'String', '2Wu@50.0% (minor):',...
+    label_FWHM_x = uicontrol(panel_beam, 'Style', 'Text', 'String', ['2W(minor)@' settings.max_ratio],...
                                 'Position', [padding base_pos label_width - 2*padding label_height],...
                                 'FontSize',font_size);
 
